@@ -5,6 +5,7 @@
         <setting id="pauseDownload" type="bool" label="30002" default="true" />
         <setting id="pausePostProcessing" type="bool" label="30003" default="true" />
         <setting id="pauseScan" type="bool" label="30004" default="false" />
+		<setting id="debug" type="bool" label="30005" default="true"/>
     </category>
     <category id="nzbget" label="30010">
         <setting id="hostname" type="text" label="30011" default="localhost" />
@@ -13,4 +14,14 @@
         <setting id="password" type="text" label="30014" default="tegbzn6789" />
         <setting id="pauseRegister" type="labelenum" label="30015" values="1|2" default="2" />
     </category>
+	<category id="active" label="40000">
+		<setting id="ActiveLiveTV" type="bool" label="40001" default="false"/>
+		<setting id="ActiveHTTP" type="bool" label="40002" default="false"/>    
+		<setting id="ActivePathOption" type="bool" label="40003" default="false"/>
+		<setting id="ActivePath" type="folder" source="video" label="40004" default="" visible= "eq(-1,true)" enable="eq(-1,true)" />
+		<setting id="ActivePathOption2" type="bool" label="40003" default="false" visible= "eq(-2,true)" enable="eq(-2,true)" />
+		<setting id="ActivePath2" type="folder" source="video" label="40004" default="" visible= "eq(-1,true)" enable="eq(-1,true)" />
+		<setting id="ActivePathOption3" type="bool" label="40003" default="false" visible= "eq(-2,true)" enable="eq(-2,true)" />
+		<setting id="ActivePath3" type="folder" source="video" label="40004" default="" visible= "eq(-1,true)" enable="eq(-1,true)" />
+	</category>
 </settings>

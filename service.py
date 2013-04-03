@@ -23,7 +23,7 @@ import xbmcaddon
 from xmlrpclib import ServerProxy
 
 ### get addon info
-__addon__       = xbmcaddon.Addon(id='service.nzbget')
+__addon__       = xbmcaddon.Addon('service.nzbget')
 __addonid__     = __addon__.getAddonInfo('id')
 __addonname__   = __addon__.getAddonInfo('name')
 __version__     = __addon__.getAddonInfo('version')
@@ -32,8 +32,62 @@ __version__     = __addon__.getAddonInfo('version')
 # __addonprofile__= xbmc.translatePath(__addon__.getAddonInfo('profile')).decode('utf-8')
 # __icon__        = __addon__.getAddonInfo('icon')
 # __localize__    = __addon__.getLocalizedString
+debug          = __addon__.getSetting("debug")
 
-__SLEEP_TIME__ = 1000
+#__SLEEP_TIME__ = 1000
+
+def Debug(msg, force = False):
+	if(debug == "true" or force):
+		try:
+			print "[Control Service NZBGet] " + msg
+		except UnicodeEncodeError:
+			print "[Control Service NZBGet] " + msg.encode( "utf-8", "ignore" )
+
+Debug("Loading '%s' version '%s'" % (__addonname__, __version__))
+
+# helper function to get string type from settings
+def getSetting(setting):
+	return __addon__.getSetting(setting).strip()
+
+# helper function to get bool type from settings
+def getSettingAsBool(setting):
+	return getSetting(setting).lower() == "True"
+
+# check active settings for filename passed as argument
+def isActive(fullpath):
+
+	if not fullpath:
+		return True
+
+	Debug("isActive(): Checking active settings for '%s'." % fullpath)
+
+	if (fullpath.find("pvr://") > -1) and getSettingAsBool('ActiveTV'):
+		Debug("isActive(): Video is playing via Live TV, which is currently set as active location.")
+		return True
+
+	if (fullpath.find("http://") > -1) and getSettingAsBool('ActiveHTTP'):
+		Debug("isActive(): Video is playing via HTTP source, which is currently set as active location.")
+		return True
+
+	ActivePath = getSetting('ActivePath')
+	if ActivePath and getSettingAsBool('ActivePathOption'):
+		if (fullpath.find(ActivePath) > -1):
+			Debug("isActive(): Video is playing from '%s', which is currently set as active path 1." % ActivePath)
+			return True
+
+	ActivePath2 = getSetting('ActivePath2')
+	if ActivePath2 and getSettingAsBool('ActivePathOption2'):
+		if (fullpath.find(ActivePath2) > -1):
+			Debug("isActive(): Video is playing from '%s', which is currently set as active path 2." % ActivePath2)
+			return True
+
+	ActivePath3 = getSetting('ActivePath3')
+	if ActivePath3 and getSettingAsBool('ActivePathOption3'):
+		if (fullpath.find(ActivePath3) > -1):
+			Debug("isActive(): Video is playing from '%s', which is currently set as active path 3." % ActivePath3)
+			return True
+
+	return False
 
 class NZBGet():
 
@@ -65,17 +119,17 @@ class NZBGet():
                 else:
                     server.pausedownload2()
                 self.isDownloadPaused = True
-                log('Pause downloading')
+                Debug('Pause downloading')
 
             if (pausePostProcessing):
                 self.isPostProcessingPaused = True            
                 server.pausepost()
-                log('Pause post processing')
+                Debug('Pause post processing')
 
             if (pauseScan):
                 server.pausescan()
                 self.isScanPaused = True
-                log('Pause scanning of incoming nzb-directory')
+                Debug('Pause scanning of incoming nzb-directory')
 
     def resume(self):
         username = __addon__.getSetting('username')
@@ -91,50 +145,48 @@ class NZBGet():
             else:
                 server.resumedownload2()
             self.isDownloadPaused = False
-            log('Resume downloading')
+            Debug('Resume downloading')
 
         if (self.isPostProcessingPaused):
             server.resumepost()
             self.isPostProcessingPaused = False
-            log('Resume post processing')
+            Debug('Resume post processing')
 
         if (self.isScanPaused):
             server.resumescan()
-            log('Resume scanning of incoming nzb-directory')
-
+            Debug('Resume scanning of incoming nzb-directory')
 
 class NZBGetService(xbmc.Player):
 
     def __init__(self):
         xbmc.Player.__init__(self)
+        Debug("Initalized")
         self.nzbget = NZBGet() 
 
     def onPlayBackStarted(self):
-        self.nzbget.pause(self.isPlayingVideo())
+        if xbmc.Player().isPlayingVideo():
+            Debug("Playback started")
+            # check for active
+            _filename = self.getPlayingFile()
+            if isActive(_filename):
+                Debug("Ignored because '%s' is NOT in active settings." % _filename)
+                return
+            else:
+                self.nzbget.pause(self.isPlayingVideo())
+                Debug("'%s' is in active settings, NZBGet paused." % _filename)
+                return
 
     def onPlayBackEnded(self):
+        Debug("Playback ended")
         self.nzbget.resume()
 
     def onPlayBackStopped(self):
+        Debug("Playback stopped")
         self.nzbget.resume()
 
-#    def onPlayBackPaused(self):
-#        not used by this service        
-            
-#    def onPlayBackResumed(self):
-#        not used by this service
+player = NZBGetService()
 
-
-def log(message):
-    xbmc.log(__addonid__ + ': ' + message)
-
-
-if (__name__ == "__main__"):
-
-    log('Starting: ' + __addonname__ + ' v' + __version__)
-    nzbget = NZBGetService()
-    while (not xbmc.abortRequested):
-        xbmc.sleep(__SLEEP_TIME__)
-
-    log('Stopped: ' + __addonname__ + ' v' + __version__)
-
+while not xbmc.abortRequested:
+    xbmc.sleep(1000)
+	
+del player
