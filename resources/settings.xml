@@ -1,16 +1,40 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <settings>
-    <category id="general" label="30000">
-        <setting id="controlNzbget" type="labelenum" label="30001" values="Audio|Video|Audio or Video" default="Video" />
-        <setting id="pauseDownload" type="bool" label="30002" default="true" />
-        <setting id="pausePostProcessing" type="bool" label="30003" default="true" />
-        <setting id="pauseScan" type="bool" label="30004" default="false" />
+    <!-- General settings -->
+    <category id="general" label="10000">
+        <setting id="controlNzbget" type="labelenum" label="10001" values="Audio|Video|Audio or Video" default="Video" />
+        <setting id="pauseDownload" type="bool" label="10002" default="true" />
+        <setting id="pausePostProcessing" type="bool" label="10003" default="true" />
+        <setting id="pauseScan" type="bool" label="10004" default="true" />
+	<setting id="otherXBMC" type="bool" label="10005" default="false" />
+	<setting id="debug" type="bool" label="10006" default="false"/>
     </category>
-    <category id="nzbget" label="30010">
-        <setting id="hostname" type="text" label="30011" default="localhost" />
-        <setting id="port" type="text" label="30012" default="6789" />
-        <setting id="username" type="text" label="30013" default="nzbget" />
-        <setting id="password" type="text" label="30014" default="tegbzn6789" />
-        <setting id="pauseRegister" type="labelenum" label="30015" values="1|2" default="2" />
+
+    <!-- NZBGet settings -->
+    <category id="nzbget" label="20000">
+        <setting id="hostname" type="text" label="20001" default="localhost" />
+        <setting id="port" type="text" label="20002" default="6789" />
+        <setting id="username" type="text" label="20003" default="nzbget" />
+        <setting id="password" type="text" label="20004" default="tegbzn6789" option="hidden" />
+    </category>
+
+    <!-- Sources settings -->
+    <category id="active" label="30000">
+	<setting id="ActiveLiveTV" type="bool" label="30001" default="false"/>
+	<setting id="ActiveHTTP" type="bool" label="30002" default="false"/>    
+	<setting id="ActivePathOption" type="bool" label="30003" default="false"/>
+	<setting id="ActivePath" type="folder" source="video" label="30004" default="" visible= "eq(-1,true)" enable="eq(-1,true)" />
+	<setting id="ActivePathOption2" type="bool" label="30003" default="false" visible= "eq(-2,true)" enable="eq(-2,true)" />
+	<setting id="ActivePath2" type="folder" source="video" label="30004" default="" visible= "eq(-1,true)" enable="eq(-1,true)" />
+	<setting id="ActivePathOption3" type="bool" label="30003" default="false" visible= "eq(-2,true)" enable="eq(-2,true)" />
+	<setting id="ActivePath3" type="folder" source="video" label="30004" default="" visible= "eq(-1,true)" enable="eq(-1,true)" />
+    </category>
+
+    <!-- XBMC Host settings -->
+    <category id="xbmc" label="40000">
+        <setting id="xbmc_hostname" type="text" label="40001" default="localhost" />
+        <setting id="xbmc_port" type="text" label="40002" default="8080" />
+        <setting id="xbmc_username" type="text" label="40003" default="xbmc" />
+        <setting id="xbmc_password" type="text" label="40004" default="" option="hidden" />
     </category>
 </settings>

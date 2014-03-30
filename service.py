@@ -18,104 +18,135 @@
 ### import modules
 import xbmc
 import xbmcaddon
+import utilities as utils
 
 ### import libraries
 from xmlrpclib import ServerProxy
+from xbmcjson import XBMC
 
 ### get addon info
-__addon__       = xbmcaddon.Addon(id='service.nzbget')
-__addonid__     = __addon__.getAddonInfo('id')
-__addonname__   = __addon__.getAddonInfo('name')
-__version__     = __addon__.getAddonInfo('version')
-# __author__      = __addon__.getAddonInfo('author')
-# __addonpath__   = __addon__.getAddonInfo('path')
-# __addonprofile__= xbmc.translatePath(__addon__.getAddonInfo('profile')).decode('utf-8')
-# __icon__        = __addon__.getAddonInfo('icon')
-# __localize__    = __addon__.getLocalizedString
+__addon__ = xbmcaddon.Addon('service.nzbget')
+__addonname__ = __addon__.getAddonInfo('name')
+__version__ = __addon__.getAddonInfo('version')
 
-__SLEEP_TIME__ = 1000
+utils.debug("Loading '%s' version '%s'" % (__addonname__, __version__))
 
 class NZBGet():
 
     isDownloadPaused = False
-    isPauseRegister1 = False
     isPostProcessingPaused = False
     isScanPaused = False
 
     def pause(self, isPlayingVideo):
-        controlNzbget = __addon__.getSetting('controlNzbget') # can be either 'Audio', 'Video' or 'Audio or Video'
+        controlNzbget = utils.getSetting('controlNzbget') # can be either 'Audio', 'Video' or 'Audio or Video'
         pauseWhenAudio = controlNzbget.startswith('Audio')    # catches both 'Audio' and 'Audio or Video'
         pauseWhenVideo = controlNzbget.endswith('Video')      # catches both 'Video' and 'Audio or Video'
 
         if ((isPlayingVideo and pauseWhenVideo) or (not isPlayingVideo and pauseWhenAudio)):
-            username = __addon__.getSetting('username')
-            password = __addon__.getSetting('password')
-            hostname = __addon__.getSetting('hostname')
-            port = __addon__.getSetting('port')
-            pauseDownload = __addon__.getSetting('pauseDownload')
-            pausePostProcessing = __addon__.getSetting('pausePostProcessing')
-            pauseScan = __addon__.getSetting('pauseScan')
-            self.isPauseRegister1 = __addon__.getSetting('pauseRegister') == '1'
+            username = utils.getSetting('username')
+            password = utils.getSetting('password')
+            hostname = utils.getSetting('hostname')
+            port = utils.getSetting('port')
+            pauseDownload = utils.getSetting('pauseDownload')
+            pausePostProcessing = utils.getSetting('pausePostProcessing')
+            pauseScan = utils.getSetting('pauseScan')
 
             server = ServerProxy('http://%s:%s@%s:%s/xmlrpc' % (username, password, hostname, port))
 
             if (pauseDownload):
-                if (self.isPauseRegister1):
-                    server.pausedownload()
-                else:
-                    server.pausedownload2()
                 self.isDownloadPaused = True
-                log('Pause downloading')
+                server.pausedownload()
+                utils.debug("Pause downloading")
 
             if (pausePostProcessing):
                 self.isPostProcessingPaused = True            
                 server.pausepost()
-                log('Pause post processing')
+                utils.debug("Pause post processing")
 
             if (pauseScan):
-                server.pausescan()
                 self.isScanPaused = True
-                log('Pause scanning of incoming nzb-directory')
+                server.pausescan()
+                utils.debug("Pause scanning of incoming nzb-directory")
 
     def resume(self):
-        username = __addon__.getSetting('username')
-        password = __addon__.getSetting('password')
-        hostname = __addon__.getSetting('hostname')
-        port = __addon__.getSetting('port')
-
+        username = utils.getSetting('username')
+        password = utils.getSetting('password')
+        hostname = utils.getSetting('hostname')
+        port = utils.getSetting('port')
         server = ServerProxy('http://%s:%s@%s:%s/xmlrpc' % (username, password, hostname, port))
 
-        if (self.isDownloadPaused):
-            if (self.isPauseRegister1):
+        xbmc_username = utils.getSetting("xbmc_username")
+        xbmc_password = utils.getSetting("xbmc_password")
+        xbmc_hostname = utils.getSetting("xbmc_hostname")
+        xbmc_port = utils.getSetting("xbmc_port")
+        myxbmc = XBMC("http://%s:%s/jsonrpc" % (xbmc_hostname, xbmc_port), xbmc_username, xbmc_password)
+        players = myxbmc.Player.GetActivePlayers().get("result")
+
+        if players:
+            for player in players:
+                playerid = player["playerid"]
+                playingitems = myxbmc.Player.GetItem({'playerid': playerid})
+                playingitem = playingitems.get("result")
+                if playingitem:
+                    #print "##########################################Playing Item Found!"
+                    #print "##########################################Type: %s" % playingitem["item"]["type"]
+                    #print "##########################################Title: %s" % playingitem["item"]["label"]
+                    if "channel" in playingitem["item"]["type"]:
+                        utils.debug("Playing Item: %s" % playingitem["item"]["type"])
+                        utils.debug("Ignored because '%s' is in active settings." % playingitem["item"]["type"])
+                        return
+                    else:
+                        utils.debug("Else Playing Item: %s" % playingitem["item"]["type"])
+                        if (self.isDownloadPaused):
+                            self.isDownloadPaused = False
+                            server.resumedownload()
+                            utils.debug("Resume downloading")
+
+                        if (self.isPostProcessingPaused):
+                            self.isPostProcessingPaused = False
+                            server.resumepost()
+                            utils.debug("Resume post processing")
+
+                        if (self.isScanPaused):
+                            self.isScanPaused = False
+                            server.resumescan()
+                            utils.debug("Resume scanning of incoming nzb-directory")
+    
+        if not players:
+            utils.debug("Nothing plays")
+            if (self.isDownloadPaused):
+                self.isDownloadPaused = False
                 server.resumedownload()
-            else:
-                server.resumedownload2()
-            self.isDownloadPaused = False
-            log('Resume downloading')
+                utils.debug("Resume downloading")
 
-        if (self.isPostProcessingPaused):
-            server.resumepost()
-            self.isPostProcessingPaused = False
-            log('Resume post processing')
+            if (self.isPostProcessingPaused):
+                self.isPostProcessingPaused = False
+                server.resumepost()
+                utils.debug("Resume post processing")
 
-        if (self.isScanPaused):
-            server.resumescan()
-            log('Resume scanning of incoming nzb-directory')
+            if (self.isScanPaused):
+                self.isScanPaused = False
+                server.resumescan()
+                utils.debug("Resume scanning of incoming nzb-directory")
 
 
 class NZBGetService(xbmc.Player):
 
     def __init__(self):
+        utils.debug("Initalized")
         xbmc.Player.__init__(self)
         self.nzbget = NZBGet() 
 
     def onPlayBackStarted(self):
-        self.nzbget.pause(self.isPlayingVideo())
+        utils.debug("Playback started")
+        self.nzbget.pause(self.isPlaying())
 
     def onPlayBackEnded(self):
+        utils.debug("Playback ended")
         self.nzbget.resume()
 
     def onPlayBackStopped(self):
+        utils.debug("Playback stopped")
         self.nzbget.resume()
 
 #    def onPlayBackPaused(self):
@@ -124,17 +155,9 @@ class NZBGetService(xbmc.Player):
 #    def onPlayBackResumed(self):
 #        not used by this service
 
+player = NZBGetService()
 
-def log(message):
-    xbmc.log(__addonid__ + ': ' + message)
-
-
-if (__name__ == "__main__"):
-
-    log('Starting: ' + __addonname__ + ' v' + __version__)
-    nzbget = NZBGetService()
-    while (not xbmc.abortRequested):
-        xbmc.sleep(__SLEEP_TIME__)
-
-    log('Stopped: ' + __addonname__ + ' v' + __version__)
-
+while not xbmc.abortRequested:
+    xbmc.sleep(1000)
+	
+del player
